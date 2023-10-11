@@ -1,0 +1,39 @@
+name: Mirror Repositories
+description: Mirror multiple repositories between SCMs which support SSH
+branding:
+  icon: copy
+  color: blue
+inputs:
+  config:
+    description: Path to configuration file
+    required: true
+  ssh_keys:
+    description: Map of SSH ids -> paths to SSH private keys
+    required: true
+  jobs:
+    description: Number of parallel jobs
+    required: false
+    default: '4'
+runs:
+  using: composite
+  steps:
+    - name: Setup environment variables
+      shell: bash
+      run: |
+        echo 'SSH_AUTH_SOCK=/tmp/ssh_agent.sock' >> "$GITHUB_ENV"
+    - name: Setup SSH agent
+      shell: bash
+      run: |
+        ssh-agent -a "$SSH_AUTH_SOCK" > /dev/null
+        mkdir -p ~/.ssh
+        touch ~/.ssh/known_hosts
+    - name: Setup SSH private keys
+      shell: bash
+      run: |
+        while IFS=':' read -r id path; do
+            ln "$path" "~/.ssh/$id"
+        done < <(yq -I0 'to_entries | .[] | .key + ":" + .value' <<< "${{ inputs.ssh_keys }}")
+    - name: Mirror repositories
+      shell: bash
+      run: |
+        yq -oj -I0 '.[]' ${{ inputs.config }} | parallel -j ${{ inputs.jobs }} '${{ github.action_path }}/mirror.sh'
