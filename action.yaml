@@ -31,7 +31,7 @@ runs:
       shell: bash
       run: |
         while IFS=':' read -r id path; do
-            ln "$path" "~/.ssh/$id"
+            ln "$path" "$HOME/.ssh/$id"
         done < <(yq -I0 'to_entries | .[] | .key + ":" + .value' <<< "${{ inputs.ssh_keys }}")
     - name: Mirror repositories
       shell: bash
