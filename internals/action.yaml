@@ -1,0 +1,8 @@
+name: GitHub Actions Internals
+description: Expose GitHub Actions internal variables to the workflow
+branding:
+  icon: eye
+  color: orange
+runs:
+  using: node20
+  main: ../cache/dist/internals/index.mjs
