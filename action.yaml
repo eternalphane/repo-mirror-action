@@ -21,26 +21,28 @@ runs:
       shell: bash
       working-directory: ${{ github.action_path }}
       run: |
-        ln -s $(realpath .) ~/work/_actions/current
+        ln -sf $(realpath .) ~/work/_actions/current
     - name: Expose action internals
       uses: ./../../_actions/current/internals
-    - name: Setup environment variables
+    - name: Setup SSH config
       shell: bash
       run: |
-        echo 'SSH_AUTH_SOCK=/tmp/ssh_agent.sock' >> "$GITHUB_ENV"
-    - name: Setup SSH agent
-      shell: bash
-      run: |
-        ssh-agent -a "$SSH_AUTH_SOCK" > /dev/null
         mkdir -p ~/.ssh
         touch ~/.ssh/known_hosts
     - name: Setup SSH private keys
       shell: bash
       run: |
         while IFS=':' read -r id path; do
-            ln "$path" "$HOME/.ssh/$id"
+            ln -f "$path" "$HOME/.ssh/$id"
         done < <(yq -I0 'to_entries | .[] | .key + ":" + .value' <<< "${{ inputs.ssh_keys }}")
     - name: Mirror repositories
       shell: bash
       run: |
         yq -oj -I0 '.[]' ${{ inputs.config }} | parallel -j ${{ inputs.jobs }} '${{ github.action_path }}/mirror.sh'
+    - name: Cleanup
+      shell: bash
+      if: always()
+      run: |
+        rm -f ~/work/_actions/current
+        mapfile -t ids < <(yq -I0 'keys' | .[])
+        rm -f "${ids[@]/#/$HOME/.ssh/}"
