@@ -6,7 +6,9 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "ncc build -o dist src/index.mjs"
+    "build": "npm run build:cache && npm run build:internals",
+    "build:cache": "ncc build -o dist src/index.mjs",
+    "build:internals": "ncc build -o dist/internals src/internals.mjs"
   },
   "dependencies": {
     "@actions/cache": "^3.2.2",
