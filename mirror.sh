@@ -1,5 +1,6 @@
 #!/bin/bash -eu
 set -o pipefail
+[ "$DEBUG" == 1 ] && set -x
 cwd=$(dirname "$(realpath -s "${BASH_SOURCE[-1]}")")
 workflow_hash=$(sha1sum <<< "$GITHUB_WORKFLOW_REF" | awk NF=1)
 

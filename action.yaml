@@ -14,6 +14,10 @@ inputs:
     description: Number of parallel jobs
     required: false
     default: '4'
+  debug:
+    description: Enable debug logging
+    required: false
+    default: 'false'
 runs:
   using: composite
   steps:
@@ -39,6 +43,8 @@ runs:
       shell: bash
       run: |
         yq -oj -I0 '.[]' ${{ inputs.config }} | parallel -j ${{ inputs.jobs }} '${{ github.action_path }}/mirror.sh'
+      env:
+        DEBUG: ${{ inputs.debug == 'true' && 1 || 0 }}
     - name: Cleanup
       shell: bash
       if: always()
