@@ -19,7 +19,12 @@ config=$1
 
 # add SSH known hosts
 for url in "$SRC_URL" "$DST_URL"; do
-    ssh-keyscan "$(grep -oP '\w+@\K.+?(?=:)|https?:\/\/\K.+?(?=\/)' <<< "$url")" >> ~/.ssh/known_hosts
+    host=$(grep -oP '\w+@\K.+?(?=:)|https?:\/\/\K.+?(?=\/)' <<< "$url")
+    if ! { ssh-keygen -F "$host" > /dev/null || ssh-keyscan -T10 "$host" >> ~/.ssh/known_hosts; }; then
+        echo "::warning::ssh-keyscan failed for $host"
+        [ "$UNSAFE_SSH" != 1 ] && exit 1
+        export GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=no'
+    fi
 done
 
 # setup SSH agent
