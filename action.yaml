@@ -14,6 +14,10 @@ inputs:
     description: Number of parallel jobs
     required: false
     default: '4'
+  strict:
+    description: Enable StrictHostKeyChecking
+    required: false
+    default: 'true'
   debug:
     description: Enable debug logging
     required: false
@@ -45,6 +49,7 @@ runs:
         yq -oj -I0 '.[]' ${{ inputs.config }} | parallel -j ${{ inputs.jobs }} '${{ github.action_path }}/mirror.sh'
       env:
         DEBUG: ${{ inputs.debug == 'true' && 1 || 0 }}
+        UNSAFE_SSH: ${{ inputs.strict == 'true' && 0 || 1 }}
     - name: Cleanup
       shell: bash
       if: always()
