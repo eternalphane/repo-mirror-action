@@ -20,15 +20,14 @@ mapfile -td, DST_URLS < <(printf '%s' "$DST_URLS")
 mapfile -td, DST_KEYS < <(printf '%s' "$DST_KEYS")
 
 # add SSH known hosts
-hosts=()
 for url in "$SRC_URL" "${DST_URLS[@]}"; do
-    hosts+=($(grep -oP '\w+@\K.+?(?=:)|https?:\/\/\K.+?(?=\/)' <<< "$url"))
+    host=$(grep -oP '\w+@\K.+?(?=:)|https?:\/\/\K.+?(?=\/)' <<< "$url")
+    if ! { ssh-keygen -F "$host" > /dev/null || ssh-keyscan -T10 "$host" >> ~/.ssh/known_hosts; }; then
+        echo "::warning::ssh-keyscan failed for $host"
+        [ "$UNSAFE_SSH" != 1 ] && exit 1
+        export GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=no'
+    fi
 done
-if ! { ssh-keygen -F "$host" > /dev/null || ssh-keyscan -T10 "$hosts" >> ~/.ssh/known_hosts; }; then
-    echo "::warning::ssh-keyscan failed for ${hosts[@]}"
-    [ "$UNSAFE_SSH" != 1 ] && exit 1
-    export GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=no'
-fi
 
 # setup SSH agent
 eval "$(ssh-agent -s)"
