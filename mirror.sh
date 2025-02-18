@@ -13,12 +13,14 @@ _cleanup() {
 }
 trap _cleanup EXIT
 
-# read config (NAME, SRC_URL, DST_URL, SRC_KEY, DST_KEY)
+# read config (NAME, SRC_URL, DST_URLS, SRC_KEY, DST_KEYS)
 config=$1
-. <(jq -r 'paths(scalars) as $path | "\($path | join("_") | ascii_upcase)=\(getpath($path) | @sh)"' <<< "$config")
+. <(yq -r '"NAME=" + .name, "SRC_URL=" + .src.url, "SRC_KEY=" + .src.key // "", "DST_URLS=" + ([.dst[].url] | join(",")), "DST_KEYS=" + ([.dst[] | (.key // "")] | join(","))' <<< "$config")
+mapfile -td, DST_URLS <<< "$DST_URLS"
+mapfile -td, DST_KEYS <<< "$DST_KEYS"
 
 # add SSH known hosts
-for url in "$SRC_URL" "$DST_URL"; do
+for url in "$SRC_URL" "${DST_URLS[@]}"; do
     host=$(grep -oP '\w+@\K.+?(?=:)|https?:\/\/\K.+?(?=\/)' <<< "$url")
     if ! { ssh-keygen -F "$host" > /dev/null || ssh-keyscan -T10 "$host" >> ~/.ssh/known_hosts; }; then
         echo "::warning::ssh-keyscan failed for $host"
@@ -31,7 +33,7 @@ done
 eval "$(ssh-agent -s)"
 
 # add SSH private keys
-mapfile -t ssh_priv_keys < <(for key in SRC_KEY DST_KEY; do echo "$HOME/.ssh/${!key:-SSH_PRIVATE_KEY}"; done | sort -u)
+mapfile -t ssh_priv_keys < <(for key in "$SRC_KEY" "${DST_KEYS[@]}"; do echo "$HOME/.ssh/${key:-$SSH_PRIVATE_KEY}"; done | sort -u)
 ssh-add "${ssh_priv_keys[@]}"
 trap "ssh-add -d ${ssh_priv_keys[*]@Q}" EXIT
 
@@ -48,7 +50,9 @@ else
 fi
 
 # push to target repo
-git -C "$cache" push --mirror "$DST_URL"
+for url in "${DST_URLS[@]}"; do
+    git -C "$cache" push --mirror "$url"
+done
 
 # cache local git repo
 "$cwd/cache.mjs" -k "$key" save "$cache"
