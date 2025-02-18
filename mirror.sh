@@ -33,7 +33,7 @@ done
 eval "$(ssh-agent -s)"
 
 # add SSH private keys
-mapfile -t ssh_priv_keys < <(for key in "$SRC_KEY" "${DST_KEYS[@]}"; do echo "$HOME/.ssh/${key:-$SSH_PRIVATE_KEY}"; done | sort -u)
+mapfile -t ssh_priv_keys < <(for key in "$SRC_KEY" "${DST_KEYS[@]}"; do echo "$HOME/.ssh/${key:-SSH_PRIVATE_KEY}"; done | sort -u)
 ssh-add "${ssh_priv_keys[@]}"
 trap "ssh-add -d ${ssh_priv_keys[*]@Q}" EXIT
 
