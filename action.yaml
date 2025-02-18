@@ -55,5 +55,5 @@ runs:
       if: always()
       run: |
         rm -f ~/work/_actions/current
-        mapfile -t ids < <(yq -I0 'keys | .[]')
+        mapfile -t ids < <(yq -I0 'keys | .[]' <<< "${{ inputs.ssh_keys }}")
         rm -f "${ids[@]/#/$HOME/.ssh/}"

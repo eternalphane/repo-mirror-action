@@ -9,15 +9,14 @@ _cleanup() {
     set +eu
     ssh-add -d "${ssh_priv_keys[@]}"
     rm -f "$SSH_AUTH_SOCK"
-    rm -f "${ssh_priv_keys[@]}"
 }
 trap _cleanup EXIT
 
 # read config (NAME, SRC_URL, DST_URLS, SRC_KEY, DST_KEYS)
 config=$1
 . <(yq -r '"NAME=" + .name, "SRC_URL=" + .src.url, "SRC_KEY=" + .src.key // "", "DST_URLS=" + ([.dst[].url] | join(",")), "DST_KEYS=" + ([.dst[] | (.key // "")] | join(","))' <<< "$config")
-mapfile -td, DST_URLS <<< "$DST_URLS"
-mapfile -td, DST_KEYS <<< "$DST_KEYS"
+mapfile -td, DST_URLS < <(printf '%s' "$DST_URLS")
+mapfile -td, DST_KEYS < <(printf '%s' "$DST_KEYS")
 
 # add SSH known hosts
 for url in "$SRC_URL" "${DST_URLS[@]}"; do
@@ -33,9 +32,12 @@ done
 eval "$(ssh-agent -s)"
 
 # add SSH private keys
-mapfile -t ssh_priv_keys < <(for key in "$SRC_KEY" "${DST_KEYS[@]}"; do echo "$HOME/.ssh/${key:-$SSH_PRIVATE_KEY}"; done | sort -u)
+mapfile -t ssh_priv_keys < <(
+    for key in "$SRC_KEY" "${DST_KEYS[@]}"; do
+        echo "$HOME/.ssh/${key:-SSH_PRIVATE_KEY}"
+    done | sort -u
+)
 ssh-add "${ssh_priv_keys[@]}"
-trap "ssh-add -d ${ssh_priv_keys[*]@Q}" EXIT
 
 # restore cached git repo
 key="mirror-$NAME"
