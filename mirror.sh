@@ -53,7 +53,7 @@ fi
 
 # push to target repo
 for url in "${DST_URLS[@]}"; do
-    git -C "$cache" push --mirror "$url"
+    git -C "$cache" push --mirror "$url" || true
 done
 
 # cache local git repo
