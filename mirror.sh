@@ -45,7 +45,7 @@ cache="$HOME/.cache/mirror/$workflow_hash/$NAME"
 mkdir -p "$cache"
 if "$cwd/cache.mjs" -k "$key" restore "$cache"; then
     # cache hit: update
-    git -C "$cache" fetch -p origin
+    git -C "$cache" fetch -p "$SRC_URL"
 else
     # cache miss: clone
     git clone --bare "$SRC_URL" "$cache"
@@ -53,7 +53,8 @@ fi
 
 # push to target repo
 for url in "${DST_URLS[@]}"; do
-    git -C "$cache" push --mirror "$url" || true
+    git -C "$cache" push --all -f "$url"
+    git -C "$cache" push --tags -f "$url"
 done
 
 # cache local git repo
